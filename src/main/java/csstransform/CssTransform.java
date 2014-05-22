@@ -3,8 +3,6 @@ package csstransform;
 import java.io.File;
 import java.util.List;
 
-import org.slf4j.LoggerFactory;
-
 import com.phloc.commons.charset.CCharset;
 import com.phloc.commons.io.file.SimpleFileIO;
 import com.phloc.commons.state.ESuccess;
@@ -22,13 +20,21 @@ import com.phloc.css.writer.CSSWriterSettings;
 
 public class CssTransform {
 	public static void main(String[] args) {
+		if (args.length == 0) {
+			System.out.println("Simply specify all input css files. The _deep.css file will be created in the same directory");
+		}
 		for (final String pathname : args) {
-			final File bootstrap = new File(pathname);
-			final CascadingStyleSheet css = readCSS30(bootstrap);
-			writeCSS30(css, new File(pathname.replaceAll("\\.css", ".min.css")), true);
-			modifyRules(css.getAllRules());
-			writeCSS30(css, new File(pathname.replaceAll("\\.css", "_deep.css")), false);
-			writeCSS30(css, new File(pathname.replaceAll("\\.css", "_deep.min.css")), true);
+			final File cssInputFile = new File(pathname);
+			if (cssInputFile.exists()) {
+				System.out.println("Processing:" + cssInputFile);
+				final CascadingStyleSheet css = readCSS30(cssInputFile);
+				writeCSS30(css, new File(pathname.replaceAll("\\.css", ".min.css")), true);
+				modifyRules(css.getAllRules());
+				writeCSS30(css, new File(pathname.replaceAll("\\.css", "_deep.css")), false);
+				writeCSS30(css, new File(pathname.replaceAll("\\.css", "_deep.min.css")), true);
+			} else {
+				System.err.println("The file:" + cssInputFile + " could not be found");
+			}
 		}
 	}
 
@@ -64,8 +70,6 @@ public class CssTransform {
 		}
 	}
 
-	private static final org.slf4j.Logger s_aLogger = LoggerFactory.getLogger(CssTransform.class);
-
 	/**
 	 * Read a CSS 3.0 declaration from a file using UTF-8 encoding.
 	 *
@@ -78,7 +82,7 @@ public class CssTransform {
 		final CascadingStyleSheet aCSS = CSSReader.readFromFile(aFile, CCharset.CHARSET_UTF_8_OBJ, ECSSVersion.CSS30);
 		if (aCSS == null) {
 			// Most probably a syntax error
-			s_aLogger.warn("Failed to read CSS - please see previous logging entries!");
+			System.err.println("Failed to read CSS - please see previous logging entries!");
 			return null;
 		}
 		return aCSS;
@@ -111,7 +115,8 @@ public class CssTransform {
 			// Finally write the String to a file
 			return SimpleFileIO.writeFile(aFile, sCSSCode, CCharset.CHARSET_UTF_8_OBJ);
 		} catch (final Exception ex) {
-			s_aLogger.error("Failed to write the CSS to a file", ex);
+			System.err.println("Failed to write the CSS to a file");
+			ex.printStackTrace();
 			return ESuccess.FAILURE;
 		}
 	}
